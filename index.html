@@ -51,8 +51,15 @@ a{color:inherit}
 .cart span{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--muted)}
 .cart input{flex:1;min-width:0;border:0;background:transparent;font-size:40px;font-weight:600;padding:0;outline:none}
 .seg{display:flex;gap:4px;background:var(--soft);border-radius:999px;padding:3px;margin-bottom:10px}
-.seg button{flex:1;border:0;background:transparent;border-radius:999px;padding:6px 4px;font-size:14px;cursor:pointer;color:var(--muted);font-weight:500}
-.seg button[aria-pressed="true"]{background:var(--paper);color:var(--ink);font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.seg button{flex:1;min-width:0;white-space:nowrap;border:0;background:transparent;border-radius:999px;padding:6px 2px;font-size:13px;letter-spacing:-.01em;cursor:pointer;color:var(--muted);font-weight:500}
+.seg button{--pc:#d70f64}
+.seg button[data-v^="u"]{--pc:#06a35a}
+.seg button[data-v="uo"]{--pc:#14532d}
+.seg button::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--pc);margin-right:4px;vertical-align:1px}
+.seg button[aria-pressed="true"]{background:var(--pc);color:#fff;font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.seg button[aria-pressed="true"]::before{background:#fff}
+.pf{display:inline-flex;align-items:center;gap:5px;color:var(--pc,var(--muted));font-weight:700}
+.pf::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
 .line{display:flex;align-items:center;gap:6px;padding:6px 0;font-size:15px;flex-wrap:wrap}
 .line .t{flex:1 1 auto;min-width:110px}
 .line input.n{width:68px;border:0;border-bottom:1px solid var(--line);background:transparent;text-align:right;padding:2px 2px;font-size:15px;font-weight:600;border-radius:0}
@@ -274,7 +281,7 @@ function calc(redrawCp=true,redrawIt=true){save();const s=st.cart,b=best(s);
   drawChart(curve,freeTo);
   const cs=combos();last={b,freeTo,bestA,bestPay,cs};
   $('combos').innerHTML=cs.length?`<div class="lbl" style="margin:0 0 2px"><b>從你的菜單挑</b><span>加點 → 總價變化</span></div>`+cs.map(o=>`<div class="combo"><span><b>${esc(comboName(o))}</b> <span class="num" style="color:var(--muted)">+${money(o.add)}</span></span><span class="num ${o.extra<=0?'g':''}">${o.extra<0?'少付 '+money(-o.extra):o.extra===0?'不多付':'多付 '+money(o.extra)}</span></div>`).join(''):'';
-  $('when').textContent=st.plat==='fp'||st.plat==='fpp'?'foodpanda':'Uber Eats'}
+  const PN={fp:['foodpanda','#d70f64'],fpp:['pandapro','#d70f64'],ue:['Uber Eats','#06a35a'],uo:['Uber One','#14532d']}[st.plat];$('when').innerHTML=`<span class="pf" style="--pc:${PN[1]}">${PN[0]}</span>`}
 function couponText(c){return c.t==='off'?`滿 ${c.min} 折 ${c.amt}`:c.t==='pct'?`滿 ${c.min} 打 ${c.rate} 折`:`滿 ${c.min} 免運`}
 
 function drawChart(curve,freeTo){const W=440,H=120,P=6,N=Math.min(400,Math.max(120,freeTo*3)),max=Math.max(60,...curve.slice(0,N+1)),min=Math.min(0,...curve.slice(0,N+1));
