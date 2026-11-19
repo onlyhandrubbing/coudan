@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>湊單計算機｜外送差多少免運、加什麼反而更便宜</title>
+<meta name="description" content="foodpanda、Uber Eats 外送湊免運、小額訂單費、折價券一次算。輸入購物車金額和優惠券，馬上知道再加多少錢的東西反而比現在便宜，該用哪張券。">
+<meta property="og:title" content="湊單計算機｜差 20 元免運？先算再加">
+<meta property="og:description" content="輸入購物車和優惠券，算出再加多少反而更便宜，該用哪張券。">
+<meta property="og:image" content="https://onlyhandrubbing.github.io/coudan/og.png">
+<meta property="og:url" content="https://onlyhandrubbing.github.io/coudan/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://onlyhandrubbing.github.io/coudan/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* A till receipt on a grey counter. Inputs read like line items; the answer is the total at the bottom. One accent: the green of money saved. */
+:root{
+  --desk:#e7e5df; --paper:#fdfcf9; --ink:#1e1e1c; --muted:#76736c; --line:#d9d5cc; --soft:#f1efe9;
+  --save:#1d7a4c; --save-soft:#e1f0e7; --warn:#b4472b;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --sans:"Noto Sans TC",system-ui,-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --desk:#141413; --paper:#1f1f1d; --ink:#ecebe6; --muted:#a19e96; --line:#383732; --soft:#2a2a27; --save:#5cc48d; --save-soft:#1c3328; --warn:#f08a6c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --desk:#141413; --paper:#1f1f1d; --ink:#ecebe6; --muted:#a19e96; --line:#383732; --soft:#2a2a27; --save:#5cc48d; --save-soft:#1c3328; --warn:#f08a6c; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--desk);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6}
+.app{max-width:500px;margin:0 auto;padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));padding-block:22px 64px}
+button,input,select{font:inherit;color:inherit}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--save);outline-offset:2px}
+.num,input.n{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.head{padding:0 6px 16px}
+.head .k{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.14em}
+.head h1{margin:6px 0 0;font-size:clamp(28px,7.6vw,36px);font-weight:900;line-height:1.25;letter-spacing:.01em}
+.head p{margin:8px 0 0;color:var(--muted);font-size:15px}
+.rcpt{background:var(--paper);border-radius:6px 6px 0 0;padding:22px 20px 26px;position:relative;box-shadow:0 1px 0 rgba(0,0,0,.04),0 18px 40px -30px rgba(0,0,0,.45)}
+.rcpt::after{content:"";position:absolute;left:0;right:0;bottom:-10px;height:10px;background:linear-gradient(-45deg,transparent 7px,var(--paper) 0),linear-gradient(45deg,transparent 7px,var(--paper) 0);background-size:14px 14px;background-position:left bottom}
+.rcpt+.rcpt{margin-top:26px}
+.blk{padding:16px 0;border-top:1px dashed var(--line)}
+.blk:first-child{border-top:0;padding-top:0}
+.lbl{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:var(--muted);letter-spacing:.08em;margin-bottom:8px}
+.lbl b{font-weight:700;color:var(--ink);font-size:14px;letter-spacing:.04em}
+.cart{display:flex;align-items:baseline;gap:6px;border-bottom:2px solid var(--ink);padding-bottom:4px}
+.cart span{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--muted)}
+.cart input{flex:1;min-width:0;border:0;background:transparent;font-size:40px;font-weight:600;padding:0;outline:none}
+.seg{display:flex;gap:4px;background:var(--soft);border-radius:999px;padding:3px;margin-bottom:10px}
+.seg button{flex:1;border:0;background:transparent;border-radius:999px;padding:6px 4px;font-size:14px;cursor:pointer;color:var(--muted);font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--paper);color:var(--ink);font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.line{display:flex;align-items:center;gap:6px;padding:6px 0;font-size:15px;flex-wrap:wrap}
+.line .t{flex:1 1 auto;min-width:110px}
+.line input.n{width:68px;border:0;border-bottom:1px solid var(--line);background:transparent;text-align:right;padding:2px 2px;font-size:15px;font-weight:600;border-radius:0}
+.line input.n:focus{border-bottom-color:var(--ink);outline:none}
+.line small{color:var(--muted);font-size:13px}
+.line select{border:1px solid var(--line);background:var(--paper);border-radius:6px;padding:2px 4px;font-size:14px}
+.note{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+.cp{display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid var(--soft);font-size:15px;flex-wrap:wrap}
+.cp:last-of-type{border-bottom:0}
+.cp input.n{border:0;border-bottom:1px solid var(--line);background:transparent;text-align:right;padding:2px;font-size:15px;font-weight:600;border-radius:0}
+.cp input.n:focus{outline:none;border-bottom-color:var(--ink)}
+.cp .x{margin-left:auto;border:0;background:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px}
+.cp.best{background:var(--save-soft);margin:0 -8px;padding:8px;border-radius:6px;border-bottom-color:transparent}
+.cp .tag{font-size:11.5px;font-weight:700;color:var(--save);letter-spacing:.06em}
+.adds{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.adds button{border:1px dashed var(--muted);background:transparent;border-radius:999px;padding:4px 12px;font-size:13.5px;cursor:pointer;color:var(--muted)}
+.adds button:hover{border-style:solid;color:var(--ink)}
+.item{display:flex;align-items:center;gap:6px;padding:6px 0;font-size:15px}
+.item input.nm{flex:1;min-width:0;border:0;border-bottom:1px solid var(--line);background:transparent;padding:2px}
+.item input.nm:focus{outline:none;border-bottom-color:var(--ink)}
+.item .x{border:0;background:none;color:var(--muted);cursor:pointer;font-size:18px;padding:2px 6px}
+/* bill */
+.bill .row{display:flex;justify-content:space-between;font-size:15px;padding:2px 0}
+.bill .row.neg{color:var(--save)}
+.bill .row.dim{color:var(--muted)}
+.bill .tot{display:flex;justify-content:space-between;align-items:baseline;border-top:2px solid var(--ink);margin-top:8px;padding-top:8px;font-weight:700}
+.bill .tot .num{font-size:28px}
+.ans{margin-top:18px;padding:16px;border-radius:8px;background:var(--save-soft)}
+.ans.meh{background:var(--soft)}
+.ans h2{margin:0;font-size:20px;line-height:1.45;font-weight:900}
+.ans h2 .num{color:var(--save)}
+.ans.meh h2 .num{color:var(--ink)}
+.ans p{margin:6px 0 0;font-size:14.5px}
+.chart{margin-top:16px}
+.chart svg{display:block;width:100%;height:auto}
+.chart .cap{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-family:var(--mono)}
+.combos{margin-top:14px}
+.combo{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px dashed var(--line);font-size:15px}
+.combo b{font-weight:700}
+.combo .num{white-space:nowrap}
+.combo .g{color:var(--save);font-weight:700}
+.acts{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.btn{border:1.5px solid var(--ink);background:transparent;border-radius:999px;padding:8px 16px;font-weight:700;font-size:14px;cursor:pointer}
+.btn.dark{background:var(--ink);color:var(--paper)}
+.stock{margin-top:34px;padding:0 6px}
+.stock h3{margin:0;font-size:16px}
+.stock p{margin:4px 0 10px;color:var(--muted);font-size:14px}
+.stock .links{display:flex;flex-wrap:wrap;gap:8px}
+.stock a{text-decoration:none;font-size:14px;font-weight:700;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:6px 14px}
+.stock a:hover{border-color:var(--ink)}
+.fine{margin:34px 6px 0;font-size:12px;color:var(--muted);line-height:1.8}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:10px;font-weight:700;font-size:14px;z-index:40;max-width:calc(100% - 32px);text-align:center}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="head">
+    <div class="k">湊單計算機</div>
+    <h1>差一點免運？<br>先算再加。</h1>
+    <p>填購物車和手上的券，算出再加多少反而更便宜。</p>
+  </div>
+
+  <div class="rcpt" aria-label="輸入">
+    <div class="blk">
+      <div class="lbl"><b>購物車現在</b><span>餐點小計</span></div>
+      <label class="cart"><span>$</span><input class="n" id="cart" type="number" inputmode="numeric" min="0" step="1" value="182" aria-label="購物車餐點小計"></label>
+    </div>
+
+    <div class="blk">
+      <div class="lbl"><b>這家的費用</b><span>照結帳頁改</span></div>
+      <div class="seg" id="plat" role="group" aria-label="外送平台">
+        <button type="button" data-v="fp">foodpanda</button><button type="button" data-v="fpp">pandapro</button><button type="button" data-v="ue">Uber Eats</button><button type="button" data-v="uo">Uber One</button>
+      </div>
+      <div class="line"><span class="t">外送費</span>$<input class="n" id="fee" type="number" inputmode="numeric" min="0"></div>
+      <div class="line"><span class="t">滿多少免外送費</span>$<input class="n" id="free" type="number" inputmode="numeric" min="0"><small>0 = 沒有</small></div>
+      <div class="line"><span class="t">未滿</span>$<input class="n" id="minT" type="number" inputmode="numeric" min="0"><select id="minMode" aria-label="小額費算法"><option value="diff">補差額</option><option value="fix">收固定</option></select><span id="minFixW">$<input class="n" id="minFee" type="number" inputmode="numeric" min="0"></span></div>
+      <div class="line"><span class="t">平台／服務費</span><input class="n" id="svc" type="number" inputmode="decimal" min="0" step="0.5"><select id="svcMode" aria-label="服務費算法"><option value="fix">元</option><option value="pct">% 餐費</option></select></div>
+      <p class="note" id="platNote"></p>
+    </div>
+
+    <div class="blk">
+      <div class="lbl"><b>手上的優惠券</b><span>一次只能用一張</span></div>
+      <div id="coupons"></div>
+      <div class="adds">
+        <button type="button" data-c="off">＋ 滿額折現</button>
+        <button type="button" data-c="pct">＋ 打折券</button>
+        <button type="button" data-c="ship">＋ 免運券</button>
+      </div>
+    </div>
+
+    <div class="blk">
+      <div class="lbl"><b>菜單上還能加的</b><span>選填，幫你挑組合</span></div>
+      <div id="items"></div>
+      <div class="adds" id="quick">
+        <button type="button" data-n="飲料" data-p="45">＋ 飲料 45</button>
+        <button type="button" data-n="小菜" data-p="35">＋ 小菜 35</button>
+        <button type="button" data-n="加蛋" data-p="15">＋ 加蛋 15</button>
+        <button type="button" data-n="白飯" data-p="15">＋ 白飯 15</button>
+        <button type="button" data-n="甜點" data-p="60">＋ 甜點 60</button>
+        <button type="button" data-n="" data-p="">＋ 自己填</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="rcpt bill" aria-live="polite">
+    <div class="lbl"><b>現在結帳</b><span id="when"></span></div>
+    <div id="bill"></div>
+    <div id="ans"></div>
+    <div class="chart" id="chart"></div>
+    <div class="combos" id="combos"></div>
+    <div class="acts"><button class="btn dark" id="copy" type="button">複製結果給同事湊單</button><button class="btn" id="copyLink" type="button">複製網址</button></div>
+  </div>
+
+  <div class="stock">
+    <h3>常常為了 20 元亂加？</h3>
+    <p>家裡備一點，下次差多少直接自取或不點。</p>
+    <div class="links" id="stock"></div>
+    <div class="links" id="refs" style="margin-top:8px"></div>
+  </div>
+
+  <p class="fine">各平台費用會依店家、距離、時段變動，預設數字只是常見情況，請以 App 結帳頁為準，填進來就會照你的算。「去蝦皮看」為推薦連結，透過連結購買站長可能獲得分潤，你的價格不受影響。本站與 foodpanda、Uber Eats 無關。</p>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(()=>{
+const SITE='https://onlyhandrubbing.github.io/coudan/';
+const AFF={id:'16301320039',sub:'coudan'};
+const buyUrl=kw=>'https://s.shopee.tw/an_redir?origin_link='+encodeURIComponent('https://shopee.tw/search?keyword='+encodeURIComponent(kw))+'&affiliate_id='+AFF.id+'&sub_id='+AFF.sub;
+/* Fill in your own invite links to show them; empty = hidden */
+const REFS={foodpanda:'',ubereats:''};
+const STOCK=[['零食箱','零食 箱購'],['泡麵箱','泡麵 箱'],['冷凍水餃','冷凍水餃'],['即食調理包','調理包 即食'],['氣泡水箱','氣泡水 箱']];
+/* Typical settings in Taiwan, Nov 2026. Fees float by store and distance, so every value stays editable. */
+const PRESET={
+  fp:{fee:39,free:0,minT:149,minMode:'diff',minFee:0,svc:9,svcMode:'fix',note:'foodpanda 未達店家最低消費會收差額；11/15 起平台費平均多 4～6 元。'},
+  fpp:{fee:39,free:199,minT:149,minMode:'diff',minFee:0,svc:7,svcMode:'fix',note:'pandapro 多數店家滿額免外送費，門檻依店家，結帳頁會寫。'},
+  ue:{fee:35,free:0,minT:150,minMode:'fix',minFee:25,svc:10,svcMode:'pct',note:'Uber Eats 服務費依餐費比例計算，小額訂單會另收費用。'},
+  uo:{fee:35,free:300,minT:150,minMode:'fix',minFee:25,svc:10,svcMode:'pct',note:'Uber One 滿額免外送費，但服務費照收。'}
+};
+const $=id=>document.getElementById(id);
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let st=Object.assign({plat:'fpp',cart:182,cfg:Object.assign({},PRESET.fpp),coupons:[{t:'off',min:300,amt:50},{t:'pct',min:299,rate:9,cap:30}],items:[{n:'飲料',p:45},{n:'小菜',p:35},{n:'加蛋',p:15}]},LS.get('cd_st',{}));
+const save=()=>LS.set('cd_st',st);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const money=n=>'$'+Math.round(n).toLocaleString();
+const num=v=>{const x=parseFloat(v);return isFinite(x)&&x>0?x:0};
+
+/* ---------- pricing ---------- */
+function parts(s,coupon){const c=st.cfg;let fee=c.fee;if(c.free>0&&s>=c.free)fee=0;
+  let small=0;if(c.minT>0&&s<c.minT)small=c.minMode==='diff'?c.minT-s:c.minFee;
+  const svc=c.svcMode==='pct'?Math.round(s*c.svc/100):c.svc;
+  let disc=0,ship=false;
+  if(coupon&&s>=coupon.min){if(coupon.t==='off')disc=Math.min(coupon.amt,s);else if(coupon.t==='pct'){disc=Math.floor(s*(10-coupon.rate)/10);if(coupon.cap>0)disc=Math.min(disc,coupon.cap)}else if(coupon.t==='ship'){ship=fee>0;disc=fee}}
+  return{s,fee,small,svc,disc,ship,coupon:disc>0?coupon:null,pay:s+fee+small+svc-disc}}
+function best(s){let b=parts(s,null);for(const c of st.coupons){const p=parts(s,c);if(p.pay<b.pay)b=p}return b}
+const pay=s=>best(s).pay;
+
+/* ---------- inputs ---------- */
+function drawPlat(){$('plat').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===st.plat));
+  const c=st.cfg;$('fee').value=c.fee;$('free').value=c.free;$('minT').value=c.minT;$('minMode').value=c.minMode;$('minFee').value=c.minFee;$('svc').value=c.svc;$('svcMode').value=c.svcMode;
+  $('minFixW').hidden=c.minMode!=='fix';$('platNote').textContent=(PRESET[st.plat]||{}).note||''}
+$('plat').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;st.plat=b.dataset.v;st.cfg=Object.assign({},PRESET[st.plat]);drawPlat();calc()});
+['fee','free','minT','minFee','svc'].forEach(k=>$(k).addEventListener('input',()=>{st.cfg[k]=num($(k).value);calc()}));
+['minMode','svcMode'].forEach(k=>$(k).addEventListener('change',()=>{st.cfg[k]=$(k).value;$('minFixW').hidden=st.cfg.minMode!=='fix';calc()}));
+$('cart').value=st.cart;$('cart').addEventListener('input',()=>{st.cart=num($('cart').value);calc()});
+
+function cpHTML(c,i){const n=(f,v,w=56)=>`<input class="n" style="width:${w}px" type="number" inputmode="decimal" min="0" data-i="${i}" data-f="${f}" value="${v||''}">`;
+  if(c.t==='off')return`滿 $${n('min',c.min)} 折 $${n('amt',c.amt,48)}`;
+  if(c.t==='pct')return`滿 $${n('min',c.min)} 打 ${n('rate',c.rate,40)} 折，最多折 $${n('cap',c.cap,44)}`;
+  return`滿 $${n('min',c.min)} 免外送費`}
+let bestIdx=-1;
+function drawCoupons(){$('coupons').innerHTML=st.coupons.length?st.coupons.map((c,i)=>`<div class="cp${i===bestIdx?' best':''}">${i===bestIdx?'<span class="tag">用這張</span>':''}${cpHTML(c,i)}<button class="x" type="button" data-del="${i}" aria-label="刪除這張券">×</button></div>`).join(''):'<p class="note" style="margin:0">沒有券也能算，只看免運和小額費。</p>'}
+$('coupons').addEventListener('input',e=>{const t=e.target;if(!t.dataset.f)return;st.coupons[+t.dataset.i][t.dataset.f]=num(t.value);calc(false)});
+$('coupons').addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(!b)return;st.coupons.splice(+b.dataset.del,1);calc()});
+document.querySelector('.blk:nth-child(3) .adds').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(!b)return;const t=b.dataset.c;
+  st.coupons.push(t==='off'?{t,min:300,amt:50}:t==='pct'?{t,min:299,rate:9,cap:30}:{t,min:199});calc();const ins=$('coupons').querySelectorAll('.cp');ins[ins.length-1]?.querySelector('input')?.focus()});
+
+function drawItems(){$('items').innerHTML=st.items.map((it,i)=>`<div class="item"><input class="nm" data-i="${i}" data-f="n" value="${esc(it.n)}" placeholder="品名" aria-label="品名"><span>$</span><input class="n" style="width:60px;border:0;border-bottom:1px solid var(--line);background:transparent;text-align:right" type="number" inputmode="numeric" min="0" data-i="${i}" data-f="p" value="${it.p||''}" aria-label="價格"><button class="x" type="button" data-del="${i}" aria-label="刪除">×</button></div>`).join('')}
+$('items').addEventListener('input',e=>{const t=e.target;if(!t.dataset.f)return;const it=st.items[+t.dataset.i];if(t.dataset.f==='p')it.p=num(t.value);else it.n=t.value;calc(false,false)});
+$('items').addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(!b)return;st.items.splice(+b.dataset.del,1);calc()});
+$('quick').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(st.items.length>=10){toast('最多 10 樣');return}
+  st.items.push({n:b.dataset.n,p:num(b.dataset.p)});calc();const r=$('items').lastElementChild;if(r&&!b.dataset.n)r.querySelector('.nm').focus()});
+
+/* ---------- combos from menu: each item 0–2 times ---------- */
+function combos(){const its=st.items.filter(x=>x.p>0).slice(0,10);if(!its.length)return[];
+  const base=pay(st.cart),out=[];const q=new Array(its.length).fill(0);
+  const total=Math.pow(3,its.length);
+  for(let k=1;k<total;k++){let x=k,add=0;for(let i=0;i<its.length;i++){q[i]=x%3;x=(x-q[i])/3;add+=q[i]*its[i].p}
+    if(add>600)continue;const p=pay(st.cart+add);out.push({q:q.slice(),add,extra:p-base,pay:p})}
+  const keep=out.filter(o=>o.extra<=0).sort((a,b)=>a.extra-b.extra||b.add-a.add);
+  const pickD=[];for(const o of keep){if(pickD.some(p=>p.extra===o.extra&&p.add===o.add))continue;pickD.push(o);if(pickD.length>=3)break}
+  if(!pickD.length){const cheap=out.sort((a,b)=>(a.extra/a.add)-(b.extra/b.add)||a.extra-b.extra).slice(0,2);return cheap.map(o=>({...o,its}))}
+  return pickD.map(o=>({...o,its}))}
+const comboName=o=>o.its.map((it,i)=>o.q[i]?(it.n||'這樣')+(o.q[i]>1?'×2':''):'').filter(Boolean).join('＋');
+
+/* ---------- main ---------- */
+let last=null;
+function calc(redrawCp=true,redrawIt=true){save();const s=st.cart,b=best(s);
+  bestIdx=b.coupon?st.coupons.indexOf(b.coupon):-1;
+  if(redrawCp)drawCoupons();else $('coupons').querySelectorAll('.cp').forEach((el,i)=>{el.classList.toggle('best',i===bestIdx);const tg=el.querySelector('.tag');if(i===bestIdx&&!tg)el.insertAdjacentHTML('afterbegin','<span class="tag">用這張</span>');if(i!==bestIdx&&tg)tg.remove()});
+  if(redrawIt)drawItems();
+  const rows=[['餐點',b.s],['外送費',b.fee,b.fee===0&&st.cfg.fee>0?'dim':''],b.small?['小額訂單費',b.small]:null,['平台／服務費',b.svc],b.disc?[b.coupon.t==='ship'?'免運券':'優惠券',-b.disc,'neg']:null].filter(Boolean);
+  $('bill').innerHTML=rows.map(r=>`<div class="row ${r[2]||''}"><span>${r[0]}${r[0]==='外送費'&&r[1]===0&&st.cfg.fee>0?'（已免運）':''}</span><span class="num">${r[1]<0?'−'+money(-r[1]):money(r[1])}</span></div>`).join('')+`<div class="tot"><span>要付</span><span class="num">${money(b.pay)}</span></div>`;
+  /* scan extra spend 1..600 */
+  let freeTo=0,bestA=0,bestPay=b.pay,curve=[];
+  for(let a=0;a<=600;a++){const p=pay(s+a);curve.push(p-b.pay);if(p<=b.pay)freeTo=a;if(p<bestPay-0.01){bestPay=p;bestA=a}}
+  let nextA=null;for(let a=1;a<=600;a++){if(curve[a]<curve[a-1]-5){nextA=a;break}}
+  let h='',cls='';
+  let fromA=0;for(let a=1;a<=freeTo;a++){if(curve[a]<0){fromA=a;break}}
+  if(freeTo>=10){const sv=b.pay-bestPay;
+    h=fromA?`<h2>再加 <span class="num">${money(fromA)}～${money(freeTo)}</span> 的東西，總價反而比現在少。</h2><p>剛好加 <b class="num">${money(bestA)}</b> 最省，少付 <b class="num">${money(sv)}</b>；超過 <b class="num">${money(freeTo)}</b> 才開始比現在貴。</p>`
+      :`<h2>再加 <span class="num">${money(freeTo)}</span> 以內的東西，總價不變。</h2><p>等於白吃，超過 <b class="num">${money(freeTo)}</b> 才開始多付。</p>`}
+  else if(nextA&&curve[nextA]<=nextA*0.5){const ex=Math.max(curve[nextA],0);cls=' meh';h=`<h2>不是白吃，但很划算：<br>加 <span class="num">${money(nextA)}</span> 只多付 <span class="num">${money(ex)}</span>。</h2><p>本來就想多一杯飲料或小菜，現在加最值得。</p>`}
+  else if(nextA){const ex=curve[nextA];cls=' meh';h=`<h2>現在剛好，別硬湊。</h2><p>下一個門檻要再加 <b class="num">${money(nextA)}</b>，會多付 <b class="num">${money(Math.max(ex,0))}</b>。</p>`}
+  else{cls=' meh';h=`<h2>現在剛好，別硬湊。</h2><p>再往上加都是照價多付，沒有門檻可以撿。</p>`}
+  if(b.coupon)h+=`<p>用「${couponText(b.coupon)}」那張最省。</p>`;
+  $('ans').innerHTML=`<div class="ans${cls}">${h}</div>`;
+  drawChart(curve,freeTo);
+  const cs=combos();last={b,freeTo,bestA,bestPay,cs};
+  $('combos').innerHTML=cs.length?`<div class="lbl" style="margin:0 0 2px"><b>從你的菜單挑</b><span>加點 → 總價變化</span></div>`+cs.map(o=>`<div class="combo"><span><b>${esc(comboName(o))}</b> <span class="num" style="color:var(--muted)">+${money(o.add)}</span></span><span class="num ${o.extra<=0?'g':''}">${o.extra<0?'少付 '+money(-o.extra):o.extra===0?'不多付':'多付 '+money(o.extra)}</span></div>`).join(''):'';
+  $('when').textContent=st.plat==='fp'||st.plat==='fpp'?'foodpanda':'Uber Eats'}
+function couponText(c){return c.t==='off'?`滿 ${c.min} 折 ${c.amt}`:c.t==='pct'?`滿 ${c.min} 打 ${c.rate} 折`:`滿 ${c.min} 免運`}
+
+function drawChart(curve,freeTo){const W=440,H=120,P=6,N=Math.min(400,Math.max(120,freeTo*3)),max=Math.max(60,...curve.slice(0,N+1)),min=Math.min(0,...curve.slice(0,N+1));
+  const x=a=>P+(W-2*P)*a/N,y=v=>P+(H-2*P)*(max-v)/(max-min||1);
+  let d='';for(let a=0;a<=N;a++)d+=(a?'L':'M')+x(a).toFixed(1)+' '+y(curve[a]).toFixed(1);
+  const y0=y(0);
+  $('chart').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="多加的餐費與多付金額的關係">
+   ${freeTo>0?`<rect x="${x(0)}" y="${P}" width="${x(Math.min(freeTo,N))-x(0)}" height="${H-2*P}" fill="var(--save-soft)"/>`:''}
+   <line x1="${P}" x2="${W-P}" y1="${y0}" y2="${y0}" stroke="var(--line)" stroke-dasharray="3 3"/>
+   <path d="${d}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/>
+   ${freeTo>0?`<text x="${x(Math.min(freeTo,N))+6}" y="${P+14}" text-anchor="start" font-size="12" fill="var(--save)" font-family="var(--mono)">加到 ${money(freeTo)} 都不虧</text>`:''}
+  </svg><div class="cap"><span>多加 $0</span><span>線在虛線下 = 比現在便宜</span><span>$${N}</span></div>`}
+
+/* ---------- share ---------- */
+function copy(t,m){if(navigator.clipboard)navigator.clipboard.writeText(t).then(()=>toast(m)).catch(()=>toast('複製不了，請手動選取'));else toast('複製不了，請手動選取')}
+$('copy').addEventListener('click',()=>{if(!last)return;const{b,freeTo,bestA,bestPay}=last;
+  let t=`我購物車 ${money(st.cart)}，現在結帳要 ${money(b.pay)}。`;
+  t+=freeTo>=10?`再加 ${money(bestA||freeTo)} 反而只要 ${money(bestPay)}，有人要一起湊嗎？加到 ${money(freeTo)} 以內都不會比現在貴。`:'現在剛好，不用湊。';
+  copy(t+'\n算給你看：'+SITE,'已複製，貼到群組吧')});
+$('copyLink').addEventListener('click',()=>copy(SITE,'網址已複製'));
+$('stock').innerHTML=STOCK.map(([l,k])=>`<a href="${buyUrl(k)}" target="_blank" rel="noopener sponsored">${l}</a>`).join('');
+$('refs').innerHTML=[REFS.foodpanda&&`<a href="${REFS.foodpanda}" target="_blank" rel="noopener sponsored">foodpanda 新用戶優惠</a>`,REFS.ubereats&&`<a href="${REFS.ubereats}" target="_blank" rel="noopener sponsored">Uber Eats 新用戶優惠</a>`].filter(Boolean).join('');
+let tt;function toast(s){$('toast').textContent=s;$('toast').hidden=false;clearTimeout(tt);tt=setTimeout(()=>$('toast').hidden=true,2200)}
+drawPlat();calc();
+})();
+</script>
+</body>
+</html>
